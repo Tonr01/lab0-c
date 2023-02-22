@@ -89,7 +89,7 @@ bool q_insert_tail(struct list_head *head, char *s)
 /* Remove an element from head of queue */
 element_t *q_remove_head(struct list_head *head, char *sp, size_t bufsize)
 {
-    if (!head)
+    if (!head || list_empty(head))
         return NULL;
 
     element_t *target = list_first_entry(head, element_t, list);
@@ -106,7 +106,7 @@ element_t *q_remove_head(struct list_head *head, char *sp, size_t bufsize)
 /* Remove an element from tail of queue */
 element_t *q_remove_tail(struct list_head *head, char *sp, size_t bufsize)
 {
-    if (!head)
+    if (!head || list_empty(head))
         return NULL;
 
     element_t *target = list_last_entry(head, element_t, list);
@@ -123,7 +123,7 @@ element_t *q_remove_tail(struct list_head *head, char *sp, size_t bufsize)
 /* Return number of elements in queue */
 int q_size(struct list_head *head)
 {
-    if (!head)
+    if (!head || list_empty(head))
         return 0;
 
     int len = 0;
@@ -131,13 +131,29 @@ int q_size(struct list_head *head)
 
     list_for_each (li, head)
         len++;
+
     return len;
 }
 
 /* Delete the middle node in queue */
+// https://leetcode.com/problems/delete-the-middle-node-of-a-linked-list/
 bool q_delete_mid(struct list_head *head)
 {
-    // https://leetcode.com/problems/delete-the-middle-node-of-a-linked-list/
+    if (!head || list_empty(head))
+        return false;
+
+    struct list_head *pre = head->prev;
+    struct list_head *nex = head->next;
+
+    do {
+        pre = pre->prev;
+        nex = nex->next;
+    } while (pre != nex && pre != nex->next);
+
+    list_del(pre);
+    element_t *target = list_entry(pre, element_t, list);
+    q_release_element(target);
+
     return true;
 }
 
