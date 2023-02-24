@@ -145,6 +145,7 @@ bool q_delete_mid(struct list_head *head)
     struct list_head *pre = head->prev;
     struct list_head *nex = head->next;
 
+    // Fifd the middle of list
     do {
         pre = pre->prev;
         nex = nex->next;
@@ -158,20 +159,48 @@ bool q_delete_mid(struct list_head *head)
 }
 
 /* Delete all nodes that have duplicate string */
+// https://leetcode.com/problems/remove-duplicates-from-sorted-list-ii/
 bool q_delete_dup(struct list_head *head)
 {
-    // https://leetcode.com/problems/remove-duplicates-from-sorted-list-ii/
+    if (!head || list_empty(head))
+        return false;
+
+    bool dup = false;
+    element_t *entry, *safe;
+
+    list_for_each_entry_safe (entry, safe, head, list)
+        if (!strcmp(entry->value, safe->value)) {
+            dup = true;
+            list_del(&entry->list);
+            q_release_element(entry);
+        } else if (dup) {
+            dup = false;
+            list_del(&entry->list);
+            q_release_element(entry);
+        }
+
     return true;
 }
 
 /* Swap every two adjacent nodes */
+// https://leetcode.com/problems/swap-nodes-in-pairs/
 void q_swap(struct list_head *head)
 {
-    // https://leetcode.com/problems/swap-nodes-in-pairs/
+    struct list_head *node = NULL;
+    for (node = head->next; node != head && node->next != head;
+         node = node->next) {
+        struct list_head *next = node->next;
+        list_move_tail(node, next);
+    }
 }
 
 /* Reverse elements in queue */
-void q_reverse(struct list_head *head) {}
+void q_reverse(struct list_head *head)
+{
+    element_t *entry, *safe;
+    list_for_each_entry_safe (entry, safe, head, list)
+        list_move(&entry->list, head);
+}
 
 /* Reverse the nodes of the list k at a time */
 void q_reverseK(struct list_head *head, int k)
