@@ -126,13 +126,13 @@ int q_size(struct list_head *head)
     if (!head || list_empty(head))
         return 0;
 
-    int len = 0;
+    int size = 0;
     struct list_head *li;
 
     list_for_each (li, head)
-        len++;
+        size++;
 
-    return len;
+    return size;
 }
 
 /* Delete the middle node in queue */
@@ -168,7 +168,7 @@ bool q_delete_dup(struct list_head *head)
     bool dup = false;
     element_t *entry, *safe;
 
-    list_for_each_entry_safe (entry, safe, head, list)
+    list_for_each_entry_safe (entry, safe, head, list) {
         if (!strcmp(entry->value, safe->value)) {
             dup = true;
             list_del(&entry->list);
@@ -178,14 +178,17 @@ bool q_delete_dup(struct list_head *head)
             list_del(&entry->list);
             q_release_element(entry);
         }
+    }
 
     return true;
 }
 
 /* Swap every two adjacent nodes */
 // https://leetcode.com/problems/swap-nodes-in-pairs/
+/*
 void q_swap(struct list_head *head)
 {
+
     struct list_head *node = NULL;
     for (node = head->next; node != head && node->next != head;
          node = node->next) {
@@ -193,8 +196,18 @@ void q_swap(struct list_head *head)
         list_move_tail(node, next);
     }
 }
+*/
+
+void q_swap(struct list_head *head)
+{
+    if (!head || list_empty(head))
+        return;
+
+    q_reverseK(head, 2);
+}
 
 /* Reverse elements in queue */
+
 void q_reverse(struct list_head *head)
 {
     element_t *entry, *safe;
@@ -203,10 +216,26 @@ void q_reverse(struct list_head *head)
 }
 
 /* Reverse the nodes of the list k at a time */
+// https://leetcode.com/problems/reverse-nodes-in-k-group/
 void q_reverseK(struct list_head *head, int k)
 {
-    // https://leetcode.com/problems/reverse-nodes-in-k-group/
+    if (!head || list_empty(head))
+        return;
+
+    struct list_head *node = NULL, *safe = NULL, *insert = head;
+    int count = 0;
+
+    list_for_each_safe (node, safe, head) {
+        if (k > count)
+            list_move(node, insert);
+        else {
+            count = 0;
+            insert = node->prev;
+        }
+        count++;
+    }
 }
+
 
 /* Sort elements of queue in ascending order */
 void q_sort(struct list_head *head) {}
