@@ -166,17 +166,17 @@ bool q_delete_dup(struct list_head *head)
         return false;
 
     bool dup = false;
-    element_t *entry, *safe;
+    element_t *target, *temp;
 
-    list_for_each_entry_safe (entry, safe, head, list) {
-        if (!strcmp(entry->value, safe->value)) {
+    list_for_each_entry_safe (target, temp, head, list) {
+        if (target->list.next != head && !strcmp(target->value, temp->value)) {
             dup = true;
-            list_del(&entry->list);
-            q_release_element(entry);
+            list_del(&target->list);
+            q_release_element(target);
         } else if (dup) {
             dup = false;
-            list_del(&entry->list);
-            q_release_element(entry);
+            list_del(&target->list);
+            q_release_element(target);
         }
     }
 
@@ -236,21 +236,45 @@ void q_reverseK(struct list_head *head, int k)
     }
 }
 
-
 /* Sort elements of queue in ascending order */
-void q_sort(struct list_head *head) {}
+void q_sort(struct list_head *head)
+{
+    if (!head || list_empty(head))
+        return;
+}
 
 /* Remove every node which has a node with a strictly greater value anywhere to
  * the right side of it */
+// https://leetcode.com/problems/remove-nodes-from-linked-list/
 int q_descend(struct list_head *head)
 {
-    // https://leetcode.com/problems/remove-nodes-from-linked-list/
+    /*if (!head || list_empty(head))
+        return 0;
+
+    struct list_head *greater = head->prev;
+    struct list_head *temp = greater->prev;
+    element_t *g, *t;
+    int len = 1;
+
+    while (temp != head) {
+        g = list_entry(greater, element_t, list);
+        t = list_entry(temp, element_t, list);
+
+        if (strcmp(t->value, g->value) < 0) {
+            temp = temp->prev;
+            list_del_init(&t->list);
+        } else {
+            greater = temp;
+            temp = greater->prev;
+            len++;
+        }
+    }*/
     return 0;
 }
 
 /* Merge all the queues into one sorted queue, which is in ascending order */
+// https://leetcode.com/problems/merge-k-sorted-lists/
 int q_merge(struct list_head *head)
 {
-    // https://leetcode.com/problems/merge-k-sorted-lists/
     return 0;
 }
