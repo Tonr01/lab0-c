@@ -248,28 +248,28 @@ void q_sort(struct list_head *head)
 // https://leetcode.com/problems/remove-nodes-from-linked-list/
 int q_descend(struct list_head *head)
 {
-    /*if (!head || list_empty(head))
+    if (!head || list_empty(head))
         return 0;
 
-    struct list_head *greater = head->prev;
-    struct list_head *temp = greater->prev;
-    element_t *g, *t;
-    int len = 1;
+    int size = q_size(head);
+    struct list_head *target = head->prev, *prev = target->prev;
 
-    while (temp != head) {
-        g = list_entry(greater, element_t, list);
-        t = list_entry(temp, element_t, list);
+    while (target->prev != head) {
+        element_t *t = list_entry(target, element_t, list);
+        element_t *p = list_entry(prev, element_t, list);
 
-        if (strcmp(t->value, g->value) < 0) {
-            temp = temp->prev;
-            list_del_init(&t->list);
+        if (strcmp(p->value, t->value) < 0) {
+            list_del(&p->list);
+            q_release_element(p);
+            prev = target->prev;
+            size--;
         } else {
-            greater = temp;
-            temp = greater->prev;
-            len++;
+            target = prev;
+            prev = target->prev;
         }
-    }*/
-    return 0;
+    }
+
+    return size;
 }
 
 /* Merge all the queues into one sorted queue, which is in ascending order */
