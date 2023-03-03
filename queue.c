@@ -145,7 +145,7 @@ bool q_delete_mid(struct list_head *head)
     struct list_head *pre = head->prev;
     struct list_head *nex = head->next;
 
-    // Fifd the middle of list
+    // Find the middle of list
     do {
         pre = pre->prev;
         nex = nex->next;
@@ -236,13 +236,6 @@ void q_reverseK(struct list_head *head, int k)
     }
 }
 
-/* Sort elements of queue in ascending order */
-void q_sort(struct list_head *head)
-{
-    if (!head || list_empty(head))
-        return;
-}
-
 /* Remove every node which has a node with a strictly greater value anywhere to
  * the right side of it */
 // https://leetcode.com/problems/remove-nodes-from-linked-list/
@@ -259,8 +252,7 @@ int q_descend(struct list_head *head)
         element_t *p = list_entry(prev, element_t, list);
 
         if (strcmp(p->value, t->value) < 0) {
-            list_del(&p->list);
-            q_release_element(p);
+            list_del_init(&p->list);
             prev = target->prev;
             size--;
         } else {
@@ -270,6 +262,82 @@ int q_descend(struct list_head *head)
     }
 
     return size;
+}
+
+/* ------------------------Undone--------------------------- */
+/* Merge two list*/
+struct list_head *mergelist(struct list_head *l1, struct list_head *l2)
+{
+    struct list_head head;
+    struct list_head *h = &head;
+    if (!l1 && !l2) {
+        return NULL;
+    }
+    while (l1 && l2) {
+        if (strcmp(list_entry(l1, element_t, list)->value,
+                   list_entry(l2, element_t, list)->value) < 0) {
+            h->next = l1;
+            l1 = l1->next;
+            h = h->next;
+        } else {
+            h->next = l2;
+            l2 = l2->next;
+            h = h->next;
+        }
+    }
+    // after merge, there are still one node still not connect yet
+
+    if (l1) {
+        h->next = l1;
+    } else if (l2) {
+        h->next = l2;
+    }
+    return head.next;
+}
+
+struct list_head *mergesort(struct list_head *head)
+{
+    if (list_empty(head))
+        return head;
+
+    struct list_head *fast = head->next;
+    struct list_head *slow = head;
+
+    // split list
+    while (fast && fast->next) {
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+
+    // Fast is the middle of list
+    fast = slow->next;
+    slow->next = NULL;
+
+    // Sort each list
+    struct list_head *left = mergesort(head);
+    struct list_head *right = mergesort(fast);
+
+    // Merge sorted left and sorted right
+    return mergelist(left, right);
+}
+
+/* Sort elements of queue in ascending order */
+void q_sort(struct list_head *head)
+{
+    if (!head || list_empty(head))
+        return;
+    // disconnect the circular structure
+    head->prev->next = NULL;
+    head->next = mergesort(head->next);
+    // reconnect the list (prev and circular)
+    struct list_head *c = head, *n = head->next;
+    while (n) {
+        n->prev = c;
+        c = n;
+        n = n->next;
+    }
+    c->next = head;
+    head->prev = c;
 }
 
 /* Merge all the queues into one sorted queue, which is in ascending order */
