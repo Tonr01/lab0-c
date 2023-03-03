@@ -252,7 +252,8 @@ int q_descend(struct list_head *head)
         element_t *p = list_entry(prev, element_t, list);
 
         if (strcmp(p->value, t->value) < 0) {
-            list_del_init(&p->list);
+            list_del(&p->list);
+            q_release_element(p);
             prev = target->prev;
             size--;
         } else {
@@ -268,36 +269,35 @@ int q_descend(struct list_head *head)
 /* Merge two list*/
 struct list_head *mergelist(struct list_head *l1, struct list_head *l2)
 {
-    struct list_head head;
-    struct list_head *h = &head;
-    if (!l1 && !l2) {
-        return NULL;
-    }
+    struct list_head temp;
+    struct list_head *t = &temp;
+
     while (l1 && l2) {
-        if (strcmp(list_entry(l1, element_t, list)->value,
-                   list_entry(l2, element_t, list)->value) < 0) {
-            h->next = l1;
+        element_t *ele1 = list_entry(l1, element_t, list);
+        element_t *ele2 = list_entry(l2, element_t, list);
+        if (strcmp(ele1->value, ele2->value) < 0) {
+            t->next = l1;
+            t = t->next;
             l1 = l1->next;
-            h = h->next;
         } else {
-            h->next = l2;
+            t->next = l2;
+            t = t->next;
             l2 = l2->next;
-            h = h->next;
         }
     }
-    // after merge, there are still one node still not connect yet
 
-    if (l1) {
-        h->next = l1;
-    } else if (l2) {
-        h->next = l2;
-    }
-    return head.next;
+    // Connect the remain list
+    if (l1)
+        t->next = l1;
+    if (l2)
+        t->next = l2;
+
+    return temp.next;
 }
 
 struct list_head *mergesort(struct list_head *head)
 {
-    if (list_empty(head))
+    if (!head->next)
         return head;
 
     struct list_head *fast = head->next;
@@ -326,18 +326,20 @@ void q_sort(struct list_head *head)
 {
     if (!head || list_empty(head))
         return;
-    // disconnect the circular structure
+
+    // Disconnect the circular structure
     head->prev->next = NULL;
     head->next = mergesort(head->next);
-    // reconnect the list (prev and circular)
-    struct list_head *c = head, *n = head->next;
-    while (n) {
-        n->prev = c;
-        c = n;
-        n = n->next;
+
+    // Turn the list into circular list
+    struct list_head *temp = head, *next = head->next;
+    while (next) {
+        next->prev = temp;
+        temp = next;
+        next = next->next;
     }
-    c->next = head;
-    head->prev = c;
+    temp->next = head;
+    head->prev = temp;
 }
 
 /* Merge all the queues into one sorted queue, which is in ascending order */
