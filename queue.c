@@ -207,7 +207,6 @@ void q_swap(struct list_head *head)
 }
 
 /* Reverse elements in queue */
-
 void q_reverse(struct list_head *head)
 {
     element_t *entry, *safe;
@@ -265,9 +264,9 @@ int q_descend(struct list_head *head)
     return size;
 }
 
-/* ------------------------Undone--------------------------- */
 /* Merge two list*/
-struct list_head *mergelist(struct list_head *l1, struct list_head *l2)
+static inline struct list_head *mergelist(struct list_head *l1,
+                                          struct list_head *l2)
 {
     struct list_head temp;
     struct list_head *t = &temp;
@@ -295,7 +294,8 @@ struct list_head *mergelist(struct list_head *l1, struct list_head *l2)
     return temp.next;
 }
 
-struct list_head *mergesort(struct list_head *head)
+/* Merge sort*/
+static inline struct list_head *mergesort(struct list_head *head)
 {
     if (!head->next)
         return head;
@@ -313,7 +313,6 @@ struct list_head *mergesort(struct list_head *head)
     fast = slow->next;
     slow->next = NULL;
 
-    // Sort each list
     struct list_head *left = mergesort(head);
     struct list_head *right = mergesort(fast);
 
@@ -327,11 +326,11 @@ void q_sort(struct list_head *head)
     if (!head || list_empty(head))
         return;
 
-    // Disconnect the circular structure
+    // Turn the list into Singly-linked list
     head->prev->next = NULL;
     head->next = mergesort(head->next);
 
-    // Turn the list into circular list
+    // Turn the list into Doubly-linked list
     struct list_head *temp = head, *next = head->next;
     while (next) {
         next->prev = temp;
@@ -346,5 +345,17 @@ void q_sort(struct list_head *head)
 // https://leetcode.com/problems/merge-k-sorted-lists/
 int q_merge(struct list_head *head)
 {
-    return 0;
+    if (!head || list_empty(head))
+        return 0;
+
+    queue_contex_t *cur = list_entry(head->next, queue_contex_t, chain);
+
+    for (struct list_head *temp = head->next->next; temp != head;
+         temp = temp->next) {
+        queue_contex_t *t = list_entry(temp, queue_contex_t, chain);
+        list_splice_init(t->q, cur->q);
+    }
+
+    q_sort(cur->q);
+    return q_size(cur->q);
 }
