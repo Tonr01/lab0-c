@@ -167,6 +167,13 @@ static void record_error()
     }
 }
 
+/*--------------------------------test------------------------------------*/
+bool do_hello(int argc, char *argv[])
+{
+    return (bool) printf("Hello, World\n");
+}
+/*--------------------------------test------------------------------------*/
+
 /* Execute a command that has already been split into arguments */
 static bool interpret_cmda(int argc, char *argv[])
 {
@@ -426,6 +433,9 @@ void init_cmd()
                 "Display or set options. See 'Options' section for details",
                 "[name val]");
     ADD_COMMAND(quit, "Exit program", "");
+    /*-------------------------------------test--------------------------------------*/
+    ADD_COMMAND(hello, "Print hello message", "");
+    /*-------------------------------------test--------------------------------------*/
     ADD_COMMAND(source, "Read commands from source file", "");
     ADD_COMMAND(log, "Copy output to file", "file");
     ADD_COMMAND(time, "Time command execution", "cmd arg ...");

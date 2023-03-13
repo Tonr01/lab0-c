@@ -42,11 +42,10 @@ extern int show_entropy;
  * OK as long as head field of queue_t structure is in first position in
  * solution code
  */
-#include "queue.h"
-
 #include "console.h"
+#include "list_sort.h"
+#include "queue.h"
 #include "report.h"
-
 /* Settable parameters */
 
 #define HISTORY_LEN 20
@@ -675,6 +674,109 @@ bool do_sort(int argc, char *argv[])
     return ok && !error_check();
 }
 
+/*-------------------------------------shuffle------------------------------------------*/
+void shuffle(struct list_head *head)
+{
+    if (!head || list_empty(head))
+        return;
+
+    int len = q_size(head);
+
+    while (len) {
+        int random = rand() % len;
+        struct list_head *node = head->next;
+
+        while (random) {
+            node = node->next;
+            random--;
+        }
+
+        list_move_tail(node, head);
+        len--;
+    }
+}
+
+bool do_shuffle(int argc, char *argv[])
+{
+    if (argc != 1) {
+        report(1, "%s takes no arguments", argv[0]);
+        return false;
+    }
+
+    if (!current || !current->q)
+        report(3, "Warning: Calling shuffle on null queue");
+    error_check();
+
+    set_noallocate_mode(true);
+    if (current && exception_setup(true))
+        shuffle(current->q);
+    exception_cancel();
+
+    set_noallocate_mode(false);
+    q_show(3);
+    return !error_check();
+}
+
+/*-------------------------------------shuffle------------------------------------------*/
+
+
+/*-------------------------------------list_sort------------------------------------------*/
+int cmp(void *priv,
+        const struct list_head *list1,
+        const struct list_head *list2)
+{
+    element_t *list1_entry = list_entry(list1, element_t, list);
+    element_t *list2_entry = list_entry(list2, element_t, list);
+    return strcmp(list1_entry->value, list2_entry->value);
+}
+
+bool do_list_sort(int argc, char *argv[])
+{
+    if (argc != 1) {
+        report(1, "%s takes no arguments", argv[0]);
+        return false;
+    }
+
+    int cnt = 0;
+    if (!current || !current->q)
+        report(3, "Warning: Calling sort on null queue");
+    else
+        cnt = q_size(current->q);
+    error_check();
+
+    if (cnt < 2)
+        report(3, "Warning: Calling sort on single node");
+    error_check();
+
+    set_noallocate_mode(true);
+    if (current && exception_setup(true))
+        list_sort(NULL, current->q, cmp);
+    exception_cancel();
+    set_noallocate_mode(false);
+
+    bool ok = true;
+    if (current && current->size) {
+        for (struct list_head *cur_l = current->q->next;
+             cur_l != current->q && --cnt; cur_l = cur_l->next) {
+            /* Ensure each element in ascending order */
+            /* FIXME: add an option to specify sorting order */
+            element_t *item, *next_item;
+            item = list_entry(cur_l, element_t, list);
+            next_item = list_entry(cur_l->next, element_t, list);
+            if (strcmp(item->value, next_item->value) > 0) {
+                report(1, "ERROR: Not sorted in ascending order");
+                ok = false;
+                break;
+            }
+        }
+    }
+
+    q_show(3);
+    return ok && !error_check();
+}
+/*-------------------------------------list_sort------------------------------------------*/
+
+
 static bool do_dm(int argc, char *argv[])
 {
     if (argc != 1) {
@@ -1021,7 +1123,9 @@ static void console_init()
         "Remove from tail of queue. Optionally compare to expected value str",
         "[str]");
     ADD_COMMAND(reverse, "Reverse queue", "");
-    ADD_COMMAND(sort, "Sort queue in ascending order", "");
+    ADD_COMMAND(shuffle, "Shuffle queue", "");
+    ADD_COMMAND(sort, "Sort queue in ascending order by mysort", "");
+    ADD_COMMAND(list_sort, "Sort queue in ascending order by list_sort", "");
     ADD_COMMAND(size, "Compute queue size n times (default: n == 1)", "[n]");
     ADD_COMMAND(show, "Show queue contents", "");
     ADD_COMMAND(dm, "Delete middle node in queue", "");
