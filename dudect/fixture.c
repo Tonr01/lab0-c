@@ -42,6 +42,7 @@
 
 #define ENOUGH_MEASURE 10000
 #define TEST_TRIES 10
+#define DUDECT_NUMBER_PERCENTILES 100
 
 static t_context_t *t;
 
@@ -50,6 +51,36 @@ enum {
     t_threshold_bananas = 500, /* Test failed with overwhelming probability */
     t_threshold_moderate = 10, /* Test failed */
 };
+
+static int cmp(const int64_t *a, const int64_t *b)
+{
+    return (int) (*a - *b);
+}
+
+static int64_t percentile(int64_t *a, double which, size_t size)
+{
+    qsort(a, size, sizeof(int64_t), (int (*)(const void *, const void *)) cmp);
+    size_t array_position = (size_t) ((double) size * (double) which);
+    assert(array_position >= 0);
+    assert(array_position < size);
+    return a[array_position];
+}
+
+/*
+ set different thresholds for cropping measurements.
+ the exponential tendency is meant to approximately match
+ the measurements distribution, but there's not more science
+ than that.
+*/
+static void prepare_percentiles(t_context_t *ctx, int64_t *exec_times)
+{
+    for (size_t i = 0; i < DUDECT_NUMBER_PERCENTILES; i++) {
+        ctx->percentiles[i] = percentile(
+            exec_times,
+            1 - (pow(0.5, 10 * (double) (i + 1) / DUDECT_NUMBER_PERCENTILES)),
+            N_MEASURES);
+    }
+}
 
 static void __attribute__((noreturn)) die(void)
 {
@@ -74,6 +105,13 @@ static void update_statistics(const int64_t *exec_times, uint8_t *classes)
 
         /* do a t-test on the execution time */
         t_push(t, difference, classes[i]);
+
+        for (size_t crop_index = 0; crop_index < DUDECT_NUMBER_PERCENTILES;
+             crop_index++) {
+            if (difference < t->percentiles[crop_index]) {
+                t_push(t, difference, classes[i]);
+            }
+        }
     }
 }
 
@@ -123,9 +161,11 @@ static bool doit(int mode)
     int64_t *exec_times = calloc(N_MEASURES, sizeof(int64_t));
     uint8_t *classes = calloc(N_MEASURES, sizeof(uint8_t));
     uint8_t *input_data = calloc(N_MEASURES * CHUNK_SIZE, sizeof(uint8_t));
+    t->percentiles = calloc(DUDECT_NUMBER_PERCENTILES, sizeof(int64_t));
+    bool first_time = t->percentiles[DUDECT_NUMBER_PERCENTILES - 1] == 0;
 
     if (!before_ticks || !after_ticks || !exec_times || !classes ||
-        !input_data) {
+        !input_data || !(t->percentiles)) {
         die();
     }
 
@@ -133,14 +173,20 @@ static bool doit(int mode)
 
     bool ret = measure(before_ticks, after_ticks, input_data, mode);
     differentiate(exec_times, before_ticks, after_ticks);
-    update_statistics(exec_times, classes);
-    ret &= report();
+
+    if (first_time)
+        prepare_percentiles(t, exec_times);
+    else {
+        update_statistics(exec_times, classes);
+        ret &= report();
+    }
 
     free(before_ticks);
     free(after_ticks);
     free(exec_times);
     free(classes);
     free(input_data);
+    free(t->percentiles);
 
     return ret;
 }
@@ -170,8 +216,11 @@ static bool test_const(char *text, int mode)
     return result;
 }
 
-#define DUT_FUNC_IMPL(op) \
-    bool is_##op##_const(void) { return test_const(#op, DUT(op)); }
+#define DUT_FUNC_IMPL(op)                \
+    bool is_##op##_const(void)           \
+    {                                    \
+        return test_const(#op, DUT(op)); \
+    }
 
 #define _(x) DUT_FUNC_IMPL(x)
 DUT_FUNCS
